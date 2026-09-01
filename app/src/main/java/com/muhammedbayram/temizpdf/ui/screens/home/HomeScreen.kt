@@ -136,6 +136,16 @@ fun HomeScreen(
                 containerColor = RedPrimary,
                 contentColor = Color.White
             )
+        },
+        bottomBar = {
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp
+            ) {
+                com.muhammedbayram.temizpdf.ui.components.AdBanner(
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     ) { innerPadding ->
         LazyColumn(

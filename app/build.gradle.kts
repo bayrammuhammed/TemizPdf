@@ -72,6 +72,9 @@ dependencies {
     // Google ML Kit Document Scanner API (Native scanning with auto edge detection & filters)
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
 
+    // Google AdMob (Lightweight Banner Ads)
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
+
     // Apache PDFBox for Android (Merging, Splitting, Page manipulation, Image to PDF)
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 
