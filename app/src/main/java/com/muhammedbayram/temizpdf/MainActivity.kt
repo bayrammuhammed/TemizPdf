@@ -84,7 +84,12 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
 
                     val startDestination = if (initialUri != null) {
-                        Screen.Reader.createRoute(initialUri)
+                        val fileName = FileUtils.getFileName(this@MainActivity, initialUri)
+                        if (fileName.endsWith(".docx", true) || fileName.endsWith(".doc", true) || fileName.endsWith(".txt", true)) {
+                            Screen.DocxReader.createRoute(initialUri)
+                        } else {
+                            Screen.Reader.createRoute(initialUri)
+                        }
                     } else {
                         Screen.Home.route
                     }

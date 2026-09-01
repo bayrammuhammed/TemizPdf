@@ -40,7 +40,9 @@ fun HomeScreen(
     themeMode: AppThemeMode,
     onToggleThemeMode: () -> Unit,
     onOpenPdf: (Uri) -> Unit,
+    onOpenDocx: (Uri) -> Unit,
     onStartScan: () -> Unit,
+    onNavigateToConverter: () -> Unit,
     onNavigateToMerge: () -> Unit,
     onNavigateToSplit: () -> Unit,
     onNavigateToOrganize: () -> Unit,
@@ -52,7 +54,7 @@ fun HomeScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Tümü") } // "Tümü", "Favoriler"
 
-    val pdfPickerLauncher = rememberLauncherForActivityResult(
+    val documentPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         uri?.let {
@@ -65,7 +67,11 @@ fun HomeScreen(
                     sizeFormatted = fileSize
                 )
             )
-            onOpenPdf(it)
+            if (fileName.endsWith(".docx", true) || fileName.endsWith(".doc", true) || fileName.endsWith(".txt", true)) {
+                onOpenDocx(it)
+            } else {
+                onOpenPdf(it)
+            }
         }
     }
 
@@ -84,7 +90,7 @@ fun HomeScreen(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "Temiz PDF",
+                                "Temiz Belge",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 22.sp
                             )
@@ -94,7 +100,7 @@ fun HomeScreen(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    "Reklamsız",
+                                    "PDF • Word • TXT",
                                     color = RedPrimary,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -103,7 +109,7 @@ fun HomeScreen(
                             }
                         }
                         Text(
-                            "Hızlı, Çevrimdışı & Güvenli Belge Stüdyosu",
+                            "Reklamsız Belge & Format Dönüştürücü",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -122,8 +128,15 @@ fun HomeScreen(
                             tint = if (themeMode == AppThemeMode.DARK) Color(0xFFFFD54F) else MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    IconButton(onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) }) {
-                        Icon(Icons.Default.FileOpen, contentDescription = "PDF Dosyası Seç", tint = RedPrimary)
+                    IconButton(onClick = {
+                        documentPickerLauncher.launch(arrayOf(
+                            "application/pdf",
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            "application/msword",
+                            "text/plain"
+                        ))
+                    }) {
+                        Icon(Icons.Default.FileOpen, contentDescription = "Belge Seç", tint = RedPrimary)
                     }
                 }
             )
@@ -136,16 +149,6 @@ fun HomeScreen(
                 containerColor = RedPrimary,
                 contentColor = Color.White
             )
-        },
-        bottomBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 2.dp
-            ) {
-                com.muhammedbayram.temizpdf.ui.components.AdBanner(
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
         }
     ) { innerPadding ->
         LazyColumn(
@@ -168,11 +171,18 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     QuickActionCard(
-                        title = "PDF Aç",
+                        title = "Belge Aç",
                         icon = Icons.Default.FolderOpen,
                         color = AccentBlue,
                         modifier = Modifier.weight(1f),
-                        onClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) }
+                        onClick = {
+                            documentPickerLauncher.launch(arrayOf(
+                                "application/pdf",
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                "application/msword",
+                                "text/plain"
+                            ))
+                        }
                     )
                     QuickActionCard(
                         title = "Belge Tara",
@@ -190,18 +200,18 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     QuickActionCard(
+                        title = "Format Çevirici",
+                        icon = Icons.Default.Transform,
+                        color = RedPrimary,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToConverter
+                    )
+                    QuickActionCard(
                         title = "PDF Birleştir",
                         icon = Icons.Default.CallMerge,
                         color = AccentPurple,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToMerge
-                    )
-                    QuickActionCard(
-                        title = "PDF Böl",
-                        icon = Icons.Default.CallSplit,
-                        color = AccentAmber,
-                        modifier = Modifier.weight(1f),
-                        onClick = onNavigateToSplit
                     )
                 }
 
@@ -212,16 +222,16 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     QuickActionCard(
-                        title = "Sayfa Düzenle",
-                        icon = Icons.Default.GridView,
-                        color = AccentGreen,
+                        title = "PDF Böl",
+                        icon = Icons.Default.CallSplit,
+                        color = AccentAmber,
                         modifier = Modifier.weight(1f),
-                        onClick = onNavigateToOrganize
+                        onClick = onNavigateToSplit
                     )
                     QuickActionCard(
-                        title = "Fotoğrafı PDF Yap",
+                        title = "Fotoğraf ➔ PDF",
                         icon = Icons.Default.AddPhotoAlternate,
-                        color = RedPrimary,
+                        color = AccentGreen,
                         modifier = Modifier.weight(1f),
                         onClick = onNavigateToImagesToPdf
                     )
@@ -335,7 +345,14 @@ fun HomeScreen(
                 items(filteredList, key = { it.uri }) { item ->
                     RecentPdfItemCard(
                         item = item,
-                        onClick = { onOpenPdf(Uri.parse(item.uri)) },
+                        onClick = {
+                            val uri = Uri.parse(item.uri)
+                            if (item.name.endsWith(".docx", true) || item.name.endsWith(".doc", true) || item.name.endsWith(".txt", true)) {
+                                onOpenDocx(uri)
+                            } else {
+                                onOpenPdf(uri)
+                            }
+                        },
                         onToggleFavorite = { recentStore.toggleFavorite(item.uri) },
                         onRemove = { recentStore.remove(item.uri) },
                         onShare = {

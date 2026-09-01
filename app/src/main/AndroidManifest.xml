@@ -33,7 +33,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- PDF Dosyalarını Doğrudan TemizPdf ile Açma (WhatsApp, İndirilenler, Tarayıcı vb.) -->
+            <!-- PDF Dosyalarını Doğrudan Açma -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -43,11 +43,26 @@
                 <data android:scheme="file" />
             </intent-filter>
 
-            <!-- Paylaşım Üzerinden PDF Alma -->
+            <!-- Word ve Metin Dosyalarını Açma (DOCX, DOC, TXT) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="text/plain" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+            </intent-filter>
+
+            <!-- Paylaşım Üzerinden Dosya Alma -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
 

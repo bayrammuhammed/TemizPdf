@@ -8,7 +8,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.muhammedbayram.temizpdf.data.db.RecentPdfStore
+import com.muhammedbayram.temizpdf.ui.screens.converter.DocumentConverterScreen
 import com.muhammedbayram.temizpdf.ui.screens.home.HomeScreen
+import com.muhammedbayram.temizpdf.ui.screens.reader.DocxReaderScreen
 import com.muhammedbayram.temizpdf.ui.screens.reader.PdfReaderScreen
 import com.muhammedbayram.temizpdf.ui.screens.tools.ImagesToPdfScreen
 import com.muhammedbayram.temizpdf.ui.screens.tools.MergePdfScreen
@@ -26,6 +28,13 @@ sealed class Screen(val route: String) {
             return "reader/$encoded"
         }
     }
+    object DocxReader : Screen("docx_reader/{uri}") {
+        fun createRoute(uri: Uri): String {
+            val encoded = URLEncoder.encode(uri.toString(), StandardCharsets.UTF_8.toString())
+            return "docx_reader/$encoded"
+        }
+    }
+    object Converter : Screen("converter")
     object Merge : Screen("merge")
     object Split : Screen("split")
     object Organize : Screen("organize")
@@ -53,7 +62,11 @@ fun AppNavigation(
                 onOpenPdf = { uri ->
                     navController.navigate(Screen.Reader.createRoute(uri))
                 },
+                onOpenDocx = { uri ->
+                    navController.navigate(Screen.DocxReader.createRoute(uri))
+                },
                 onStartScan = onStartScan,
+                onNavigateToConverter = { navController.navigate(Screen.Converter.route) },
                 onNavigateToMerge = { navController.navigate(Screen.Merge.route) },
                 onNavigateToSplit = { navController.navigate(Screen.Split.route) },
                 onNavigateToOrganize = { navController.navigate(Screen.Organize.route) },
@@ -72,6 +85,38 @@ fun AppNavigation(
             PdfReaderScreen(
                 pdfUri = uri,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.DocxReader.route,
+            arguments = listOf(navArgument("uri") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val encodedUri = backStackEntry.arguments?.getString("uri") ?: ""
+            val decodedUri = URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.toString())
+            val uri = Uri.parse(decodedUri)
+
+            DocxReaderScreen(
+                fileUri = uri,
+                recentStore = recentStore,
+                onNavigateBack = { navController.popBackStack() },
+                onOpenConvertedPdf = { pdfUri ->
+                    navController.navigate(Screen.Reader.createRoute(pdfUri)) {
+                        popUpTo(Screen.Home.route)
+                    }
+                }
+            )
+        }
+
+        composable(Screen.Converter.route) {
+            DocumentConverterScreen(
+                recentStore = recentStore,
+                onNavigateBack = { navController.popBackStack() },
+                onOpenPdf = { uri ->
+                    navController.navigate(Screen.Reader.createRoute(uri)) {
+                        popUpTo(Screen.Home.route)
+                    }
+                }
             )
         }
 
