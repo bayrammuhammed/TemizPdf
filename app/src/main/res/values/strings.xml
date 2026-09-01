@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Temiz PDF</string>
+    <string name="open_pdf">PDF Aç</string>
+    <string name="scan_document">Belge Tara</string>
+    <string name="pdf_tools">PDF Araçları</string>
+    <string name="recent_files">Son Açılan Belgeler</string>
+    <string name="merge_pdf">PDF Birleştir</string>
+    <string name="split_pdf">PDF Böl</string>
+    <string name="organize_pages">Sayfa Düzenle</string>
+    <string name="images_to_pdf">Fotoğrafı PDF Yap</string>
+    <string name="pdf_to_images">PDF\'i Fotoğraf Yap</string>
+    <string name="signature">İmza Ekle</string>
+    <string name="search_hint">PDF Ara veya Filtrele...</string>
+    <string name="no_recent_files">Henüz açılmış bir PDF yok. Yukarıdaki düğmelerle bir PDF açabilir veya belge tarayabilirsiniz.</string>
+</resources>
