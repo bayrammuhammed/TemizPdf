@@ -10,12 +10,19 @@ import kotlinx.coroutines.launch
 class TemizPdfApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        // Initialize PDFBox for Android
-        PDFBoxResourceLoader.init(applicationContext)
 
-        // Initialize Google Mobile Ads (AdMob) in background
+        // Background asynchronous initialization - keeps cold start fast and responsive
         CoroutineScope(Dispatchers.IO).launch {
-            MobileAds.initialize(this@TemizPdfApp) {}
+            try {
+                PDFBoxResourceLoader.init(applicationContext)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            try {
+                MobileAds.initialize(this@TemizPdfApp)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

@@ -55,6 +55,7 @@ fun PdfReaderScreen(
     val helper = remember { PdfRendererHelper(context) }
 
     var isLoaded by remember { mutableStateOf(false) }
+    var loadError by remember { mutableStateOf<String?>(null) }
     var totalPages by remember { mutableStateOf(0) }
     var isNightMode by remember { mutableStateOf(false) }
     var showGridDialog by remember { mutableStateOf(false) }
@@ -64,10 +65,14 @@ fun PdfReaderScreen(
 
     // Initialize & Load PDF
     LaunchedEffect(pdfUri) {
+        loadError = null
+        isLoaded = false
         withContext(Dispatchers.IO) {
             if (helper.open(pdfUri)) {
                 totalPages = helper.pageCount
                 isLoaded = true
+            } else {
+                loadError = "Belge açılamadı veya dosya silinmiş/erişilemez olabilir."
             }
         }
     }
@@ -207,7 +212,41 @@ fun PdfReaderScreen(
                 .padding(innerPadding)
                 .background(if (isNightMode) Color(0xFF121212) else Color(0xFFECEFF1))
         ) {
-            if (!isLoaded) {
+            if (loadError != null) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(56.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        loadError ?: "Belge açılamadı",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Dosya silinmiş, taşınmış veya erişim izni sona ermiş olabilir.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Button(
+                        onClick = onNavigateBack,
+                        colors = ButtonDefaults.buttonColors(containerColor = RedPrimary)
+                    ) {
+                        Text("Geri Dön")
+                    }
+                }
+            } else if (!isLoaded) {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -293,7 +332,7 @@ fun PdfReaderScreen(
                         items(totalPages) { idx ->
                             var thumbBitmap by remember { mutableStateOf<Bitmap?>(null) }
                             LaunchedEffect(idx) {
-                                thumbBitmap = helper.renderPage(idx, scale = 0.3f, isNightMode = false)
+                                thumbBitmap = helper.renderPage(idx, scale = 0.35f)
                             }
 
                             Card(
@@ -346,10 +385,25 @@ fun PdfPageCard(
     pageIndex: Int,
     isNightMode: Boolean
 ) {
-    var pageBitmap by remember(pageIndex, isNightMode) { mutableStateOf<Bitmap?>(null) }
+    var pageBitmap by remember(pageIndex) { mutableStateOf<Bitmap?>(null) }
 
-    LaunchedEffect(pageIndex, isNightMode) {
-        pageBitmap = helper.renderPage(pageIndex, scale = 1.8f, isNightMode = isNightMode)
+    LaunchedEffect(pageIndex) {
+        pageBitmap = helper.renderPage(pageIndex, scale = 1.8f)
+    }
+
+    val nightColorFilter = remember(isNightMode) {
+        if (isNightMode) {
+            androidx.compose.ui.graphics.ColorFilter.colorMatrix(
+                androidx.compose.ui.graphics.ColorMatrix(
+                    floatArrayOf(
+                        -1f,  0f,  0f,  0f, 255f,
+                         0f, -1f,  0f,  0f, 255f,
+                         0f,  0f, -1f,  0f, 255f,
+                         0f,  0f,  0f,  1f,   0f
+                    )
+                )
+            )
+        } else null
     }
 
     Card(
@@ -364,6 +418,7 @@ fun PdfPageCard(
             Image(
                 bitmap = pageBitmap!!.asImageBitmap(),
                 contentDescription = "Sayfa ${pageIndex + 1}",
+                colorFilter = nightColorFilter,
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
@@ -375,7 +430,7 @@ fun PdfPageCard(
                     .height(350.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp), color = RedPrimary)
             }
         }
     }

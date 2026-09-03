@@ -57,20 +57,37 @@ fun HomeScreen(
     val documentPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        uri?.let {
-            val fileName = FileUtils.getFileName(context, it)
-            val fileSize = FileUtils.formatFileSize(FileUtils.getFileSize(context, it))
+        uri?.let { pickedUri ->
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    pickedUri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            // Immediately copy to app storage while permission is 100% active
+            val localFile = FileUtils.copyUriToTempFile(context, pickedUri)
+            val finalUri = if (localFile.exists() && localFile.length() > 0) {
+                Uri.fromFile(localFile)
+            } else {
+                pickedUri
+            }
+
+            val fileName = FileUtils.getFileName(context, pickedUri)
+            val fileSize = FileUtils.formatFileSize(FileUtils.getFileSize(context, pickedUri))
             recentStore.addOrUpdate(
                 PdfDocumentItem(
-                    uri = it.toString(),
+                    uri = finalUri.toString(),
                     name = fileName,
                     sizeFormatted = fileSize
                 )
             )
             if (fileName.endsWith(".docx", true) || fileName.endsWith(".doc", true) || fileName.endsWith(".txt", true)) {
-                onOpenDocx(it)
+                onOpenDocx(finalUri)
             } else {
-                onOpenPdf(it)
+                onOpenPdf(finalUri)
             }
         }
     }
@@ -458,6 +475,9 @@ fun RecentPdfItemCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Küçük önizleme resmi veya simge
+            val hasValidThumb = remember(item.thumbnailPath) {
+                !item.thumbnailPath.isNullOrBlank() && try { File(item.thumbnailPath).exists() } catch (e: Exception) { false }
+            }
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -465,9 +485,9 @@ fun RecentPdfItemCard(
                     .background(RedPrimary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                if (item.thumbnailPath != null && File(item.thumbnailPath).exists()) {
+                if (hasValidThumb) {
                     AsyncImage(
-                        model = File(item.thumbnailPath),
+                        model = File(item.thumbnailPath!!),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

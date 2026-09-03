@@ -24,13 +24,19 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Reader : Screen("reader/{uri}") {
         fun createRoute(uri: Uri): String {
-            val encoded = URLEncoder.encode(uri.toString(), StandardCharsets.UTF_8.toString())
+            val encoded = android.util.Base64.encodeToString(
+                uri.toString().toByteArray(Charsets.UTF_8),
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+            )
             return "reader/$encoded"
         }
     }
     object DocxReader : Screen("docx_reader/{uri}") {
         fun createRoute(uri: Uri): String {
-            val encoded = URLEncoder.encode(uri.toString(), StandardCharsets.UTF_8.toString())
+            val encoded = android.util.Base64.encodeToString(
+                uri.toString().toByteArray(Charsets.UTF_8),
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+            )
             return "docx_reader/$encoded"
         }
     }
@@ -79,8 +85,16 @@ fun AppNavigation(
             arguments = listOf(navArgument("uri") { type = NavType.StringType })
         ) { backStackEntry ->
             val encodedUri = backStackEntry.arguments?.getString("uri") ?: ""
-            val decodedUri = URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.toString())
-            val uri = Uri.parse(decodedUri)
+            val uriString = try {
+                val decodedBytes = android.util.Base64.decode(
+                    encodedUri,
+                    android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+                )
+                String(decodedBytes, Charsets.UTF_8)
+            } catch (e: Exception) {
+                URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.toString())
+            }
+            val uri = Uri.parse(uriString)
 
             PdfReaderScreen(
                 pdfUri = uri,
@@ -93,8 +107,16 @@ fun AppNavigation(
             arguments = listOf(navArgument("uri") { type = NavType.StringType })
         ) { backStackEntry ->
             val encodedUri = backStackEntry.arguments?.getString("uri") ?: ""
-            val decodedUri = URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.toString())
-            val uri = Uri.parse(decodedUri)
+            val uriString = try {
+                val decodedBytes = android.util.Base64.decode(
+                    encodedUri,
+                    android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+                )
+                String(decodedBytes, Charsets.UTF_8)
+            } catch (e: Exception) {
+                URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.toString())
+            }
+            val uri = Uri.parse(uriString)
 
             DocxReaderScreen(
                 fileUri = uri,

@@ -18,21 +18,29 @@ object FileUtils {
     fun getFileName(context: Context, uri: Uri): String {
         var result: String? = null
         if (uri.scheme == "content") {
-            val cursor: Cursor? = context.contentResolver.query(uri, null, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val index = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (index >= 0) {
-                        result = it.getString(index)
+            try {
+                val cursor: Cursor? = context.contentResolver.query(uri, null, null, null, null)
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val index = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (index >= 0) {
+                            result = it.getString(index)
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
         if (result == null) {
-            result = uri.path
-            val cut = result?.lastIndexOf('/') ?: -1
-            if (cut != -1) {
-                result = result?.substring(cut + 1)
+            try {
+                result = uri.lastPathSegment ?: uri.path
+                val cut = result?.lastIndexOf('/') ?: -1
+                if (cut != -1) {
+                    result = result?.substring(cut + 1)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
         return result ?: "Adsiz_Belge.pdf"
@@ -40,14 +48,25 @@ object FileUtils {
 
     fun getFileSize(context: Context, uri: Uri): Long {
         if (uri.scheme == "content") {
-            val cursor: Cursor? = context.contentResolver.query(uri, null, null, null, null)
-            cursor?.use {
-                if (it.moveToFirst()) {
-                    val index = it.getColumnIndex(OpenableColumns.SIZE)
-                    if (index >= 0) {
-                        return it.getLong(index)
+            try {
+                val cursor: Cursor? = context.contentResolver.query(uri, null, null, null, null)
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val index = it.getColumnIndex(OpenableColumns.SIZE)
+                        if (index >= 0) {
+                            return it.getLong(index)
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        } else if (uri.scheme == "file") {
+            try {
+                val file = File(uri.path ?: "")
+                if (file.exists()) return file.length()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
         return 0L
@@ -61,12 +80,28 @@ object FileUtils {
     }
 
     fun copyUriToTempFile(context: Context, uri: Uri): File {
-        val fileName = "temp_" + System.currentTimeMillis() + "_" + getFileName(context, uri)
+        val safeName = getFileName(context, uri).replace("[^a-zA-Z0-9._-]".toRegex(), "_")
+        val fileName = "temp_" + System.currentTimeMillis() + "_" + safeName
         val tempFile = File(context.cacheDir, fileName)
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            FileOutputStream(tempFile).use { output ->
-                input.copyTo(output)
+        try {
+            if (uri.scheme == "file") {
+                val srcFile = File(uri.path ?: "")
+                if (srcFile.exists()) {
+                    srcFile.inputStream().use { input ->
+                        FileOutputStream(tempFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+            } else {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(tempFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
         return tempFile
     }
@@ -79,16 +114,20 @@ object FileUtils {
     }
 
     fun sharePdf(context: Context, file: File) {
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.provider",
-            file
-        )
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "application/pdf"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        try {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "PDF Paylaş"))
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        context.startActivity(Intent.createChooser(intent, "PDF Paylaş"))
     }
 }
